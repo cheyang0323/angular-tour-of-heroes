@@ -1,0 +1,21 @@
+FROM registry.access.redhat.com/ubi8/nodejs-14:1-72
+# FROM registry.redhat.io/rhel8/nodejs-14-minimal:1-53
+WORKDIR /opt/app
+RUN mkdir cfg
+ADD oracle-instantclient12*.rpm /tmp/
+RUN npm install oracledb
+USER root
+RUN yum -y install /tmp/oracle-instantclient*.rpm && \
+    ln -s /usr/lib64/libnsl.so.2 /usr/lib64/libnsl.so.1 && \
+    rm -rf /var/cache/yum && \
+    rm -f /tmp/oracle-instantclient*.rpm && \
+    echo /usr/lib/oracle/12.2/client64/lib > /etc/ld.so.conf.d/oracle-instantclient12.2.conf && \
+    ldconfig
+USER 1001
+ENV LD_LIBRARY_PATH=/usr/lib/oracle/12.2/client64/lib:$LD_LIBRARY_PATH
+ENV PATH=$PATH:/usr/lib/oracle/12.2/client64/bin
+ENV TNS_ADMIN=/opt/app/cfg
+COPY db.js .
+COPY package.json .
+COPY tnsnames.ora cfg
+CMD ["node", "db.js"]
